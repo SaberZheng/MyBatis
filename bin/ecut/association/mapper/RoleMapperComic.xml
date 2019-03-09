@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+  <!-- namespace命名空间，作用就是对sql进行分类化管理，理解sql隔离 
+          注意：使用mapper代理方法开发，namespace有特殊重要的作用-->
+  <mapper namespace="ecut.association.mapper.RoleMapperComic">
+    <!-- 开启本mapper的namespace下的二缓存
+	type：指定cache接口的实现类的类型，mybatis默认使用PerpetualCache
+	要和ehcache整合，需要配置type为ehcache实现cache接口的类型
+	 -->
+	<cache type="org.mybatis.caches.ehcache.EhcacheCache"/>
+  	<!-- 角色查询关联动漫的resultMap
+	将整个查询的结果映射到中ecut.association.po.Role
+	 -->
+  	<resultMap type="Role" id="RoleComicResultMap">
+  		<!-- 配置映射的角色信息 -->
+		<!-- id：指定查询列中的唯 一标识，角色信息的中的唯 一标识，如果有多个列组成唯一标识，配置多个id
+			column：角色信息的唯 一标识 列
+			property：角色信息的唯 一标识 列所映射到Role中哪个属性
+		  -->
+  		<id column="id" property="id"/>
+  		<result column="role_name" property="roleName"/>
+  		<result column="comic_id" property="comicId"/>
+  		<result column="note" property="note"/>
+  		<!-- 配置映射的关联的动漫信息 -->
+		<!-- association：用于映射关联查询单个对象的信息
+		property：要将关联查询的动漫信息映射到Role中哪个属性
+		 -->
+  		<association property="comic" javaType="Comic">
+  			<!-- id：关联查询角色的唯 一标识
+			column：指定唯 一标识角色信息的列
+			javaType：映射到Comic的哪个属性
+			 -->
+			<id column="comic_id" property="id"/>
+  			<result column="comic_name" property="comicName"/>
+  			<result column="remark" property="remark"/> 
+ 		</association>
+  	</resultMap>
+  	
+  	<resultMap type="Comic" id="ComicResultMap">
+  		<id column="id" property="id"/>
+  		<result column="comic_name" property="comicName"/>
+  		<result column="remark" property="reamark"/>
+  	</resultMap>
+  	
+  	<!-- 动漫明细信息
+		一个动漫关联查询出了多歌角色，要使用collection进行映射
+		collection：对关联查询到多条记录映射到集合对象中
+		property：将关联查询到多条记录映射到ecut.association.po.Comic哪个属性
+		ofType：指定映射到list集合属性中pojo的类型
+		 -->
+  	<resultMap type="Comic" extends="ComicResultMap" id="ComicsResultMap">
+		<!-- 使用extends继承，不用在中配置动漫信息的映射 -->
+  		<collection property="roles" ofType="Role">
+  			<!-- id：角色唯 一标识
+		 	property:要将角色的唯 一标识 映射到Role类的哪个属性
+		 	  -->
+  			<id column="role_id" property="id"/>
+  			<result column="role_name" property="roleName"/>
+  			<result column="comic_id" property="comicId"/>
+  			<result column="note" property="note"/>
+  		</collection>
+  	</resultMap>
+  	
+  	
+  	<resultMap type="Comic" id="ComicDubberResultMap">
+  		<id column="id" property="id"/>
+  		<result column="comic_name" property="comicName"/>
+  		<result column="remark" property="remark"/>
+  		<collection property="roles" ofType="Role">
+  			<!-- id：角色唯 一标识
+		 	property:要将角色的唯 一标识 映射到Role类的哪个属性
+		 	  -->
+  			<id column="role_id" property="id"/>
+  			<result column="role_name" property="roleName"/>
+  			<result column="comic_id" property="comicId"/>
+  			<result column="note" property="note"/>
+  			<association property="dubber" javaType="Dubber">
+				<id column="dubber_id" property="id"/>
+  				<result column="dubber_name" property="dubberName"/>
+  				<result column="dubber_role_id" property="roleId"/> 
+ 			</association>
+  		</collection>
+  	</resultMap>
+  	
+  	
+	<!-- 延迟加载的resultMap -->
+  	<resultMap type="Role" id="RoleLazyResultMap">
+  		<!-- 配置映射的角色信息 -->
+		<!-- id：指定查询列中的唯 一标识，角色信息的中的唯 一标识，如果有多个列组成唯一标识，配置多个id
+			column：角色信息的唯 一标识 列
+			property：角色信息的唯 一标识 列所映射到Role中哪个属性
+		  -->
+  		<id column="id" property="id"/>
+  		<result column="role_name" property="roleName"/>
+  		<result column="comic_id" property="comicId"/>
+  		<result column="note" property="note"/>
+  		<!-- 实现对动漫信息进行延迟加载
+			select：指定延迟加载需要执行的statement的id（是根据comic_id查询动漫信息的statement）
+			要使用映射文件中findComicById完成根据动漫id(comic_id)动漫信息的查询，如果findComicById不在本mapper中需要前边加namespace
+			column：角色信息中关联动漫信息查询的列，是comic_id
+			关联查询的sql理解为：
+			SELECT t_role.*,
+	(SELECT comic_name FROM t_comic WHERE t_comic.id = t_role.id)comicName,
+	(SELECT remark  FROM t_comic WHERE t_comic.id = t_role.id)remark
+	 FROM t_comic
+			 -->
+  		<association property="comic" javaType="Comic" select="findComicById" column="comic_id"/>
+  		<!-- 实现对动漫信息进行延迟加载 -->
+  	</resultMap>
+  	
+  	<sql id="base">
+  	t_role.id , t_role.role_name AS roleName, t_role.comic_id AS comicId, t_role.note, t_comic.comic_name AS comicName, t_comic.remark  
+  	</sql>
+  	
+  	
+	<!-- 查询角色关联查询动漫信息，使用resultType -->
+  	<select id="findRoleComicsByResultType" resultType="RoleComic">
+  		SELECT 
+  		<include refid="base"/>
+  		FROM t_role , t_comic 
+  		<where>
+  		 t_role.comic_id = t_comic.id
+  		</where>
+  	</select>
+  	
+  	<!-- 查询角色关联查询动漫信息 ,使用resultMap-->
+  	<select id="findRoleComicsByResultMap" resultMap="RoleComicResultMap">
+  		SELECT 
+  		t_role.*,t_comic.id AS comic_id , t_comic.comic_name , t_comic.remark
+  		FROM t_role , t_comic 
+  		<where>
+  		 t_role.comic_id = t_comic.id
+  		</where>
+  	</select>
+  	
+  	<!--查询动漫信息。关联查询动漫中的角色,使用resultMap-->
+  	<select id="findComics" resultMap="ComicsResultMap">
+  		SELECT 
+  		t_comic.*,t_role.id AS role_id, t_role.role_name,  t_role.note ,t_role.comic_id 
+  		FROM t_comic, t_role
+  		<where>
+  		 t_role.comic_id = t_comic.id
+  		</where>
+  	</select>
+  	
+  	
+  	<!--查询动漫信息。关联查询动漫中的角色的配音演员信息,使用resultMap-->
+  	<select id="findComicsAndDubber" resultMap="ComicDubberResultMap">
+  		SELECT 
+		t_comic.*,t_role.id AS role_id, t_role.role_name,  t_role.note ,t_role.comic_id ,t_dubber.id AS dubber_id , t_dubber.dubber_name ,t_dubber.role_id  AS dubber_role_id FROM t_comic, t_role,t_dubber
+  		<where>
+  		 t_role.id = t_dubber.role_id  AND t_role.comic_id = t_comic.id
+  		</where>
+  	</select>
+  	
+  	<!-- 查询角色关联查询动漫信息 ,使用resultMap和延迟加载， 动漫信息需要延迟加载 -->
+  	<select id="findRoleComicsByLazyLoading" resultMap="RoleLazyResultMap">
+  		SELECT * FROM t_role 
+  	</select>
+  	
+  	<select id="findComicById" parameterType="java.lang.Integer" resultMap="ComicResultMap" useCache="false">
+  		SELECT * FROM t_comic WHERE id = #{value}
+  	</select>
+  	
+  	<update id="updateComic" parameterType="Comic" flushCache="true">
+  		update t_comic set comic_name = #{comicName} where id =#{id}
+  	</update>
+  	
+  </mapper>
